@@ -1,0 +1,147 @@
+############################    Manipulating javascript objects ################################
+I received data from an API in the format shown below. (Truncated)
+
+var data = [
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2019,
+		"rmonth" : 4
+	},
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2022,
+		"rmonth" : 5
+	},
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2018,
+		"rmonth" : 7
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2023,
+		"rmonth" : 6
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2018,
+		"rmonth" : 12
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2021,
+		"rmonth" : 12
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2019,
+		"rmonth" : 2
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2021,
+		"rmonth" : 8
+	},
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2020,
+		"rmonth" : 8
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2022,
+		"rmonth" : 11
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2019,
+		"rmonth" : 1
+	},
+	{
+		"type_of_certificate" : "R",
+		"ryear" : 2019,
+		"rmonth" : 4
+	},
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2021,
+		"rmonth" : 12
+	},
+	{
+		"type_of_certificate" : "N",
+		"ryear" : 2021,
+		"rmonth" : 10
+	}
+]
+
+
+I need to use the data to populate a HighCharts Chart dynamically. The needs of the Chart are as follows:
+1.  Create a Trends multiline chart for trends of 'R' and 'N' for each year
+2.  There are 4 quarters defined in months as follows:
+    a)  Quarter One : Months 7,8,9
+    b)  Quarter Two: Months 10,11,12
+    c)  Quarter Three : Months 1,2,3
+    d)  Quarter Four : Months 4,5,6
+    
+To transform the data into the kind of series i wanted , I created utility functions to transform the data as appropriate.
+
+// JavaScriptFunction to group an array of objects by property
+const groupBy = (array, property) => array.reduce((grouped, element) => ({
+  ...grouped,
+  [element[property]]: [...(grouped[element[property]] || []), element]
+}), {})
+
+// JavaScript Function to count by an object property
+const countBy = (arr, prop) => {
+  return arr.reduce((prev,current) => {
+    return prev[current[prop]] = ++prev[current[prop]] || 1, prev
+  },{})
+}
+
+################### STEP ONE ###################
+// Group the data by months
+let monthsData = groupBy(data, "rmonth");
+
+################## STEP TWO ####################
+// Filter For example by Quarter One data
+
+let q1 = Object.keys(monthsData)
+.filter((key) =>
+  [10,11,12].includes(parseInt(key))
+).reduce((obj, key) => {
+  return Object.assign(obj, {
+    [key]: monthsData[key]
+  });
+},{})
+
+################# STEP THREE ##############
+// Combine the values of Quarter into a single list
+
+let templist = [];
+Object.keys(q1).forEach((key) => {
+  q1[key].map(item => templist.push(item));
+  
+})
+
+############### STEP FOUR  ###############
+// Regroup the quarter values by years
+
+let yearly = groupBy(templist,'ryear');
+// Loop through each year and count the 'N' and 'R' per year and convert them to series
+console.log(yearly);
+let series = [];
+Object.keys(yearly).forEach((year) => {
+  console.log(countBy(yearly[year],'type_of_certificate'));
+  series.push({[year]:countBy(yearly[year],'type_of_certificate')});
+})
+console.log(series);
+
+Te result of the transformation of the full data set becomes:
+[
+  { '2018': { R: 56, N: 51 } },
+  { '2019': { N: 89, R: 82 } },
+  { '2020': { N: 85, R: 78 } },
+  { '2021': { N: 87, R: 99 } },
+  { '2022': { N: 82, R: 103 } },
+  { '2023': { N: 29, R: 23 } }
+]
